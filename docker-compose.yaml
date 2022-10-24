@@ -1,0 +1,49 @@
+version: "3.7"
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.24-latest
+    volumes:
+    - ./served-config/envoy.yaml:/etc/envoy/config.yaml 
+    - ./configs/security/tls.crt:/etc/certs/tls.crt
+    - ./configs/security/tls.key:/etc/certs/tls.key
+    entrypoint: /usr/local/bin/envoy -c /etc/envoy/config.yaml 
+    networks:
+    - network
+    ports:
+    - "10000:10000"  
+    - "19000:19000"
+
+  httpbin:
+    image: docker.io/kennethreitz/httpbin
+    networks:
+    - network
+
+  curl:
+    image: franklinyu/http3-client
+    entrypoint: tail -f /dev/null     
+    networks:
+    - network    
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+    - ./configs/monitoring/prometheus.yaml:/etc/prometheus/prometheus.yml
+    networks:
+    - network
+    ports:
+    - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:8.5.4
+    volumes:
+    - ./configs/monitoring/grafana.ini:/etc/grafana/grafana.ini
+    - ./configs/monitoring/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+    - ./configs/monitoring/dashboard.json:/usr/share/grafana/public/dashboards/home.json
+    
+    ports:
+      - 3000:3000
+    links:
+      - prometheus    
+
+networks:
+  network: {}
